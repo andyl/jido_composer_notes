@@ -1,0 +1,969 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jido Composer</title>
+<meta name="description" content="A conversation with Mike Hostetler about a Composer cookbook for Jido: exploration and envisioning.">
+<meta name="author" content="Andy Leak">
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --surface-2: #f3f1ec;
+    --text: #1d1b22;
+    --muted: #5d5a66;
+    --faint: #8f8b98;
+    --border: #e2dfd8;
+    --accent: #5b3fd1;
+    --accent-strong: #3f2a9e;
+    --accent-soft: #eeeafe;
+    --on-accent: #ffffff;
+    --good: #1f8a5b;
+    --code-bg: #f3f1ec;
+    --term-bg: #17151f;
+    --term-text: #ebe9f3;
+    --term-muted: #8f8aa3;
+    --m-win: #ffffff;
+    --m-chrome: #efede8;
+    --m-panel: #fbfaf8;
+    --m-side: #f5f3ef;
+    --m-node: #ffffff;
+    --m-edge: #cfcbd6;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121117;
+      --surface: #1a1921;
+      --surface-2: #22202b;
+      --text: #ecebf2;
+      --muted: #aaa6b7;
+      --faint: #7a768d;
+      --border: #302e3b;
+      --accent: #a796ff;
+      --accent-strong: #cbc1ff;
+      --accent-soft: #2a2448;
+      --on-accent: #16131f;
+      --good: #4cc38a;
+      --code-bg: #1e1c26;
+      --term-bg: #0d0c12;
+      --m-win: #1a1921;
+      --m-chrome: #24222d;
+      --m-panel: #16151c;
+      --m-side: #1d1b25;
+      --m-node: #24222d;
+      --m-edge: #45425a;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121117;
+    --surface: #1a1921;
+    --surface-2: #22202b;
+    --text: #ecebf2;
+    --muted: #aaa6b7;
+    --faint: #7a768d;
+    --border: #302e3b;
+    --accent: #a796ff;
+    --accent-strong: #cbc1ff;
+    --accent-soft: #2a2448;
+    --on-accent: #16131f;
+    --good: #4cc38a;
+    --code-bg: #1e1c26;
+    --term-bg: #0d0c12;
+    --m-win: #1a1921;
+    --m-chrome: #24222d;
+    --m-panel: #16151c;
+    --m-side: #1d1b25;
+    --m-node: #24222d;
+    --m-edge: #45425a;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .page { max-width: 820px; margin: 0 auto; padding: 56px 16px 80px; }
+  .wide { max-width: 1160px; margin: 32px auto; padding: 0 16px; }
+
+  header.doc { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 8px; }
+  .eyebrow { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin: 0 0 10px; }
+  h1 { font-size: clamp(34px, 6vw, 48px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -.02em; }
+  .subtitle { font-size: 20px; color: var(--muted); margin: 0 0 18px; }
+  .meta { font-size: 14px; color: var(--faint); margin: 0; }
+
+  h2 { font-size: 28px; line-height: 1.2; margin: 64px 0 16px; letter-spacing: -.01em; }
+  h2 .num { color: var(--accent); margin-right: 10px; font-variant-numeric: tabular-nums; }
+  h3 { font-size: 19px; margin: 36px 0 10px; }
+  p, ul, ol { margin: 0 0 16px; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  li > ul { margin: 4px 0 0; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:hover { color: var(--accent-strong); }
+  em.note { color: var(--muted); }
+
+  code {
+    font: 0.86em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 5px;
+    overflow-wrap: anywhere;
+  }
+  pre {
+    background: var(--term-bg);
+    color: var(--term-text);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin: 0 0 18px;
+  }
+  pre code { background: none; border: 0; padding: 0; font: inherit; color: inherit; }
+  pre .c { color: var(--term-muted); }
+  pre .p { color: #b3a6ff; }
+  pre .s { color: #9fd8b4; }
+  pre .k { color: #f0b37e; }
+
+  .lede { font-size: 20px; line-height: 1.5; border-left: 3px solid var(--accent); padding: 2px 0 2px 18px; margin: 0 0 24px; }
+
+  .questions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0 20px; }
+  .questions div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .questions b { display: block; font-size: 17px; margin-bottom: 4px; }
+  .questions span { font-size: 15px; color: var(--muted); line-height: 1.45; display: block; }
+  @media (max-width: 640px) { .questions { grid-template-columns: 1fr; } }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); font-weight: 600; background: var(--surface-2); }
+  tr:last-child td { border-bottom: 0; }
+  td code { white-space: nowrap; }
+  td.recipes code { white-space: normal; }
+
+  .hyp {
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 28px 0 0;
+  }
+  .hyp .label { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; color: var(--accent); display: block; margin-bottom: 4px; }
+  .hyp p { margin: 0; }
+
+  figure { margin: 0; }
+  figure svg { display: block; width: 100%; height: auto; }
+  figcaption { font-size: 14px; color: var(--muted); margin-top: 12px; text-align: center; }
+  .frame { border-radius: 14px; box-shadow: 0 1px 2px rgba(20,16,40,.06), 0 18px 50px -18px rgba(40,24,110,.28); }
+
+  .phases { list-style: none; padding: 0; counter-reset: ph; margin: 12px 0 0; }
+  .phases li { counter-increment: ph; position: relative; padding: 0 0 18px 48px; margin: 0; }
+  .phases li::before {
+    content: counter(ph);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent);
+    font-weight: 700; font-size: 14px; display: grid; place-items: center;
+  }
+  .phases li::after { content: ""; position: absolute; left: 15px; top: 32px; bottom: 2px; width: 1.5px; background: var(--border); }
+  .phases li:last-child::after { display: none; }
+  .phases li:first-child::before { background: var(--accent); color: var(--on-accent); }
+
+  .discuss { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .discuss section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px 6px; }
+  .discuss h3 { margin: 0 0 8px; font-size: 16px; color: var(--accent); }
+  .discuss ul { font-size: 15.5px; padding-left: 20px; }
+  .discuss .full { grid-column: 1 / -1; }
+  @media (max-width: 640px) { .discuss { grid-template-columns: 1fr; } }
+
+  .sources { font-size: 15px; color: var(--muted); }
+  footer { border-top: 1px solid var(--border); margin-top: 64px; padding-top: 20px; font-size: 14px; color: var(--faint); }
+
+  /* SVG tokens */
+  .f-win { fill: var(--m-win); }
+  .f-chrome { fill: var(--m-chrome); }
+  .f-panel { fill: var(--m-panel); }
+  .f-side { fill: var(--m-side); }
+  .f-node { fill: var(--m-node); }
+  .f-surface2 { fill: var(--surface-2); }
+  .f-accent { fill: var(--accent); }
+  .f-soft { fill: var(--accent-soft); }
+  .f-on { fill: var(--on-accent); }
+  .f-good { fill: var(--good); }
+  .f-term { fill: var(--term-bg); }
+  .s-line { stroke: var(--border); }
+  .s-accent { stroke: var(--accent); }
+  .s-edge { stroke: var(--m-edge); }
+  .s-on { stroke: var(--on-accent); }
+  .t { fill: var(--text); }
+  .tm { fill: var(--muted); }
+  .tf { fill: var(--faint); }
+  .ta { fill: var(--accent); }
+  .tas { fill: var(--accent-strong); }
+  .tt { fill: var(--term-text); }
+  .ttm { fill: var(--term-muted); }
+  .tp { fill: #b3a6ff; }
+  svg text { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  svg .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  svg .cap { font-size: 10px; letter-spacing: .12em; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<header class="doc">
+  <p class="eyebrow">Discussion draft · V1</p>
+  <h1>Jido Composer</h1>
+  <p class="subtitle">A conversation with Mike Hostetler, maintainer of Jido</p>
+  <p class="meta">October 2026 · Andy Leak · Copyright © 2026 by Andy Leak - All Rights Reserved</p>
+</header>
+
+<h2>Purpose of this conversation</h2>
+
+<p class="lede">This is exploration and envisioning. It is not a pitch or a proposal.</p>
+
+<p>We want to answer three questions together:</p>
+<div class="questions">
+  <div><b>Does it make sense?</b><span>Is there a real problem that a Jido cookbook would solve?</span></div>
+  <div><b>How might it work?</b><span>What would a Jido cookbook contain, and who would own it?</span></div>
+  <div><b>Is it worth doing?</b><span>For Jido, for Composer, and for Jido's users.</span></div>
+</div>
+<ul>
+  <li>Each section ends with a <strong>hypothesis</strong>. The discussion at the end is where we test them. We expect some of them to be wrong.</li>
+  <li>You are the first person outside the project to hear about Composer, so your read on whether the idea comes across clearly is feedback in itself.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2><span class="num">1</span>What is Composer?</h2>
+
+<p class="lede"><strong>In one sentence:</strong> Composer turns a fresh Elixir app into a working prototype by running a named, shareable list of Igniter changes.</p>
+
+<h3>Why Composer was developed</h3>
+<ul>
+  <li>Elixir frameworks ship good generators (<code>phx.new</code>) and Igniter installers.</li>
+  <li>Even so, getting from a generated skeleton to a first working prototype takes a lot of manual work, and teams repeat the same work on every new app.</li>
+  <li>That knowledge (which defaults to remove, which packages to add, how to wire them) lives in blog posts, READMEs and people's heads. It isn't in code.</li>
+</ul>
+
+<h3>The problems Composer solves</h3>
+<ul>
+  <li>Removing generator defaults you don't want.</li>
+  <li>Adding layouts, styles, pages and navigation.</li>
+  <li>Creating seed data.</li>
+  <li>Configuring add-on packages: auth, mailers, API extensions, job queues.</li>
+  <li>Making all of the above <strong>repeatable, composable and shareable</strong>.</li>
+</ul>
+
+<h3>How Composer extends Igniter</h3>
+<ul>
+  <li><a href="https://github.com/ash-project/igniter">Igniter</a> provides safe, composable code changes: AST-aware edits shown as one diff before they are applied.</li>
+  <li>Composer adds a layer on top:
+    <ul>
+      <li><strong>Metadata</strong> on each change (summary, facets, tags, requirements), so humans and agents can search for it and discover it.</li>
+      <li><strong>Composition</strong>: ordered lists of changes, switched on and off with flags.</li>
+      <li><strong>Distribution</strong>: changes packaged and shipped like any Hex dependency.</li>
+    </ul>
+  </li>
+  <li>Any Hex package's own Igniter installer can be used as a step (<code>"hex:oban"</code>), so Composer reuses what the ecosystem already has.</li>
+</ul>
+
+<h3>Inspiration: the Ash installer</h3>
+<ul>
+  <li>The <a href="https://ash-hq.org/installer/">Ash HQ installer</a> lets you pick features and get a single command that builds the app.</li>
+  <li>Composer generalises that idea. Any framework, team or developer can publish the building blocks, not only one framework's maintainers.</li>
+</ul>
+
+<h3>The Composer model: cookbooks, recipes, steps</h3>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Term</th><th>What it is</th><th>Address</th></tr></thead>
+  <tbody>
+    <tr><td><strong>step</strong></td><td>one reusable change to the target app (eg an Igniter task)</td><td><code>cookbook:step</code></td></tr>
+    <tr><td><strong>recipe</strong></td><td>an ordered, flag-aware list of steps; may include other recipes</td><td><code>cookbook:group/recipe</code></td></tr>
+    <tr><td><strong>cookbook</strong></td><td>a package's bundle of steps, recipes and templates</td><td>the package's OTP app name</td></tr>
+  </tbody>
+</table>
+</div>
+
+</div><!-- /page -->
+
+<div class="wide" style="max-width:1000px">
+<figure>
+<svg viewBox="0 0 1000 260" role="img" aria-labelledby="model-title model-desc">
+  <title id="model-title">The Composer model</title>
+  <desc id="model-desc">Cookbooks come from four sources: core, dependencies, local and the app itself. A cookbook holds recipes, a recipe holds steps, and Igniter applies them to the app as one reviewed diff.</desc>
+  <defs>
+    <marker id="arrow-m" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" class="f-accent"/>
+    </marker>
+  </defs>
+
+  <text x="10" y="24" class="cap tf">COOKBOOK SOURCES</text>
+  <g>
+    <rect x="10" y="36" width="230" height="40" rx="8" class="f-node s-line"/>
+    <text x="24" y="53" class="mono t" font-size="12" font-weight="700">core</text>
+    <text x="24" y="68" class="tm" font-size="11">built into Composer</text>
+
+    <rect x="10" y="86" width="230" height="40" rx="8" class="f-node s-line"/>
+    <text x="24" y="103" class="mono t" font-size="12" font-weight="700">deps</text>
+    <text x="24" y="118" class="tm" font-size="11">any dep with lib/composer/&lt;app&gt;.ex</text>
+
+    <rect x="10" y="136" width="230" height="40" rx="8" class="f-node s-line"/>
+    <text x="24" y="153" class="mono t" font-size="12" font-weight="700">local</text>
+    <text x="24" y="168" class="tm" font-size="11">~/.config/composer/recipes/*.exs</text>
+
+    <rect x="10" y="186" width="230" height="40" rx="8" class="f-node s-line"/>
+    <text x="24" y="203" class="mono t" font-size="12" font-weight="700">app</text>
+    <text x="24" y="218" class="tm" font-size="11">your project, via mix composer.new</text>
+  </g>
+  <g fill="none" stroke-width="1.5" class="s-edge">
+    <path d="M240 56 C266 56 264 130 290 130"/>
+    <path d="M240 106 C266 106 264 130 290 130"/>
+    <path d="M240 156 C266 156 264 130 290 130"/>
+    <path d="M240 206 C266 206 264 130 290 130"/>
+  </g>
+
+  <rect x="290" y="16" width="420" height="228" rx="12" class="f-soft s-accent" stroke-width="1.5"/>
+  <text x="306" y="40" class="cap ta">COOKBOOK</text>
+  <text x="384" y="40" class="mono tas" font-size="13" font-weight="700">composer_jido</text>
+
+  <rect x="306" y="54" width="190" height="176" rx="10" class="f-node s-line"/>
+  <text x="320" y="74" class="cap tf">RECIPE</text>
+  <text x="320" y="93" class="mono t" font-size="12.5" font-weight="700">cs/intake</text>
+  <rect x="318" y="106" width="166" height="26" rx="6" class="f-surface2"/>
+  <text x="330" y="123" class="mono tm" font-size="11">hex:jido</text>
+  <rect x="318" y="140" width="166" height="26" rx="6" class="f-surface2"/>
+  <text x="330" y="157" class="mono tm" font-size="11">email_intake_agent</text>
+  <rect x="318" y="174" width="166" height="26" rx="6" class="f-surface2"/>
+  <text x="330" y="191" class="mono tm" font-size="11">web_intake_agent</text>
+  <text x="320" y="219" class="tf" font-size="10.5">3 steps</text>
+
+  <rect x="508" y="54" width="190" height="176" rx="10" class="f-node s-line"/>
+  <text x="522" y="74" class="cap tf">RECIPE</text>
+  <text x="522" y="93" class="mono t" font-size="12.5" font-weight="700">cs/metrics</text>
+  <rect x="520" y="106" width="166" height="26" rx="6" class="f-surface2"/>
+  <text x="532" y="123" class="mono tm" font-size="11">hex:jido</text>
+  <rect x="520" y="140" width="166" height="26" rx="6" class="f-surface2"/>
+  <text x="532" y="157" class="mono tm" font-size="11">metrics_store</text>
+  <rect x="520" y="174" width="166" height="26" rx="6" class="f-node s-accent" stroke-dasharray="4 3"/>
+  <text x="532" y="191" class="mono ta" font-size="11">{:use, "ash/postgres"}</text>
+  <text x="522" y="219" class="tf" font-size="10.5">2 steps + 1 recipe</text>
+
+  <path d="M712 130 L756 130" class="s-accent" stroke-width="1.75" fill="none" marker-end="url(#arrow-m)"/>
+  <rect x="760" y="92" width="112" height="76" rx="10" class="f-node s-line"/>
+  <text x="816" y="124" text-anchor="middle" class="t" font-size="14" font-weight="700">Igniter</text>
+  <text x="816" y="144" text-anchor="middle" class="tm" font-size="11">one reviewed diff</text>
+
+  <path d="M874 130 L896 130" class="s-accent" stroke-width="1.75" fill="none" marker-end="url(#arrow-m)"/>
+  <rect x="900" y="92" width="92" height="76" rx="10" class="f-accent"/>
+  <text x="946" y="124" text-anchor="middle" class="mono f-on" font-size="13" font-weight="700">my_app</text>
+  <text x="946" y="144" text-anchor="middle" class="f-on" font-size="11" opacity=".85">prototype</text>
+</svg>
+<figcaption>Cookbooks are discovered from four places. A recipe is an ordered list of steps (and other recipes); Igniter applies the result as one diff.</figcaption>
+</figure>
+</div>
+
+<div class="page" style="padding-top:8px;padding-bottom:0">
+
+<p>A recipe is plain data:</p>
+
+<pre><code>[
+  <span class="k">default:</span> [
+    <span class="k">shortdoc:</span> <span class="s">"My app's setup"</span>,
+    <span class="k">flags:</span> [<span class="k">oban:</span> <span class="s">"Add Oban"</span>],
+    <span class="k">steps:</span> [
+      <span class="s">"core:phx/remove_daisy_ui"</span>,      <span class="c"># undo a phx.new default</span>
+      <span class="s">"core:setup/credo"</span>,              <span class="c"># add a package</span>
+      <span class="s">"hex:ash"</span>,                       <span class="c"># a Hex package's own installer</span>
+      {<span class="s">"hex:oban"</span>, <span class="k">if:</span> <span class="p">:oban</span>},         <span class="c"># optional, behind --oban</span>
+      <span class="s">"my_app:deploy_config"</span>,          <span class="c"># the team's own step</span>
+      {<span class="p">:use</span>, <span class="s">"local:dev/tools"</span>}        <span class="c"># include another recipe</span>
+    ]
+  ]
+]</code></pre>
+
+<pre><code><span class="c">$</span> mix composer.recipe.run app/default --oban</code></pre>
+
+<h3>Where cookbooks live (the same model as Mix tasks)</h3>
+<ul>
+  <li>Any dependency that contains <code>lib/composer/&lt;app&gt;.ex</code> is a cookbook. Composer discovers it automatically, the way Mix discovers tasks in deps.</li>
+  <li><code>core</code> is built into Composer.</li>
+  <li><code>local</code> holds a developer's personal recipes (<code>~/.config/composer/recipes/*.exs</code>).</li>
+  <li>The app you're working on can be its own cookbook (<code>mix composer.new</code>).</li>
+</ul>
+
+<h3>Who writes cookbooks</h3>
+<ul>
+  <li><strong>The Composer project:</strong> <code>core</code>, plus experimental cookbooks (<code>composer_lab</code>).</li>
+  <li><strong>Framework maintainers:</strong> a framework ships a cookbook next to its code, or as a companion package (for example <code>composer_ash</code> or <code>composer_jido</code>).</li>
+  <li><strong>Development teams:</strong> house recipes that encode "how we start an app here".</li>
+</ul>
+
+<h3>Cookbooks for major Elixir frameworks</h3>
+<ul>
+  <li>We envision a cookbook for each major Elixir framework.</li>
+  <li>We intend to prototype cookbooks for:
+    <ul>
+      <li><a href="https://github.com/elixir-volt/astral">Astral</a>: static sites</li>
+      <li><a href="https://francis.build">Francis</a>: small Plug/Bandit web apps</li>
+      <li><a href="https://www.phoenixframework.org">Phoenix</a>: web apps and LiveView</li>
+      <li><a href="https://ash-hq.org">Ash</a>: declarative application framework</li>
+      <li><a href="https://jido.run">Jido</a>: multi-agent systems</li>
+      <li><a href="https://mobframework.com">Mob</a>: native mobile apps on the BEAM</li>
+    </ul>
+  </li>
+</ul>
+
+<h3>Current status and links</h3>
+<ul>
+  <li>Version 0.2.0, open source.</li>
+  <li>Source: <a href="https://github.com/elixir-composer/composer">github.com/elixir-composer/composer</a></li>
+  <li>Experimental cookbook: <a href="https://github.com/andyl/composer_lab">github.com/andyl/composer_lab</a> (still private)</li>
+  <li>Site: <a href="https://elixir-composer.dev">elixir-composer.dev</a> (not yet public)</li>
+  <li>Working today: discovery, recipe/step list/show/run/edit, scaffolding, lint, shell completion, and a language server for recipe files.</li>
+  <li>Not built yet: the web dashboard shown in section 3.</li>
+</ul>
+
+<div class="hyp">
+  <span class="label">Hypothesis 1</span>
+  <p>Setting up a new Elixir app is a repeated cost that framework maintainers and teams would rather capture as code. Composer can be explained in a few minutes.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="num">2</span>Our understanding of Jido</h2>
+
+<p><em class="note">This is our outside read. Please correct it.</em></p>
+
+<h3>What we take Jido to be</h3>
+<ul>
+  <li>"A runtime for reliable multi-agent systems built on Elixir/OTP for fault isolation, concurrency, and production uptime." (<a href="https://jido.run">jido.run</a>)</li>
+  <li>Agents hold immutable state and run validated <strong>actions</strong>. <strong>Signals</strong> are routed to actions. <strong>Directives</strong> (emit, schedule) request side effects. <strong>Plugins</strong> add state and routes.</li>
+  <li><code>jido_ai</code> adds LLM reasoning, skills and multi-agent orchestration. Runic adds workflows: research, delegation, structured branching.</li>
+</ul>
+
+<h3>Why Jido? Our hypothesis, by way of Carl Hewitt</h3>
+<ul>
+  <li>Hewitt created the Actor Model. Erlang/OTP processes are actors in practice, so Jido sits on a substrate that Hewitt's ideas describe directly.</li>
+  <li>At Code Mesh LDN 2018, Hewitt himself pointed to <strong>Erlang and Elixir</strong> as the tactics for building scalable, robust intelligent systems.</li>
+  <li>In <em>Open Systems</em> (1984), Hewitt argued that the following properties belong together and depend on each other:
+    <ul>
+      <li>continuous growth</li>
+      <li>no bottlenecks</li>
+      <li>arm's-length relationships between parts</li>
+      <li>inconsistency among knowledge bases</li>
+      <li>decentralized decision-making</li>
+      <li>negotiation among parts</li>
+    </ul>
+  </li>
+  <li>Those properties line up with what we think could make agent systems different from ordinary applications:</li>
+</ul>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>What agent systems might do</th><th>Hewitt's open-systems property</th></tr></thead>
+  <tbody>
+    <tr><td>Operate in a public mesh, not inside one app</td><td>continuous growth; no bottlenecks</td></tr>
+    <tr><td>Interact in ways the original author did not anticipate</td><td>inconsistency robustness</td></tr>
+    <tr><td>Interact with agents by other authors, without pre-planning</td><td>arm's-length relationships</td></tr>
+    <tr><td>Evolve over time (<em>how? to what purpose?</em>)</td><td>continuous growth</td></tr>
+    <tr><td>Self-organize to achieve a complex task (<em>how? which tasks?</em>)</td><td>decentralized decision-making; negotiation</td></tr>
+    <tr><td>Be invoked by LLM skills</td><td>(new: the "person" in Hewitt's citadels is now often an LLM)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<ul>
+  <li>Hewitt also held that <strong>there is no computer-only solution</strong>: people are part of the system. That suggests Jido's sweet spot is work where agents act alongside people, not in place of them.</li>
+</ul>
+
+<h3>Where we think the sweet spot is</h3>
+<ul>
+  <li>Use cases now popular in general-purpose assistants such as Hermes Agent and OpenClaw look like a natural fit for Jido agents:
+    <ul>
+      <li><strong>Customer service:</strong> triage across email, web and chat, then route and track to resolution.</li>
+      <li><strong>Fraud detection:</strong> many small watchers, each flagging a pattern, with escalation to a person.</li>
+      <li><strong>Correspondence:</strong> drafting, follow-ups and reminders over long periods.</li>
+      <li><strong>Scheduled, unattended work:</strong> daily reports, weekly audits, monitoring.</li>
+      <li><strong>Document pipelines:</strong> invoices, categorization, extraction.</li>
+      <li><strong>Research:</strong> delegated, multi-step gathering and synthesis.</li>
+    </ul>
+  </li>
+  <li>What these share: they run for a long time, they are event-driven, they need fault isolation, and a person stays in the loop. OTP is good at all four.</li>
+</ul>
+
+<div class="hyp">
+  <span class="label">Hypothesis 2</span>
+  <p>Jido's strongest domains are long-running, event-driven, people-in-the-loop business processes. The open-systems properties above are what set Jido apart from single-process agent frameworks.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="num">3</span>The potential fit between Jido and Composer</h2>
+<ul>
+  <li>Jido apps have a lot of setup: agents, actions, signal routes, plugins, AI providers, persistence, and a LiveView front end.</li>
+  <li>A Jido cookbook would turn that setup into recipes a developer can run, and a coding agent can discover and run too.</li>
+  <li>Composer works at <strong>development time</strong>. It gets you to a running Jido app; it does not manage agents once they are running.</li>
+</ul>
+
+<h3>What it might look like</h3>
+
+<pre><code><span class="c">$</span> mix igniter.new my_app --install composer_jido composer_ash composer_phoenix
+<span class="c">$</span> cd my_app
+<span class="c">$</span> mix composer.dashboard</code></pre>
+
+<p><code>mix composer.dashboard</code> (not built yet) starts a local web server and opens a dashboard in the browser:</p>
+<ul>
+  <li><strong>Main panel:</strong> an installation graph like the <a href="https://ash-hq.org/installer/">Ash HQ installer</a>, showing Jido recipes and the steps they pull in. The graph highlights the recipes that the chat suggests.</li>
+  <li><strong>Sidebar:</strong> an LLM chat titled <strong>"Describe your Jido application"</strong>.</li>
+</ul>
+
+</div><!-- /page -->
+
+<!-- ======================= DASHBOARD MOCKUP ======================= -->
+<div class="wide">
+<figure>
+<svg class="frame" viewBox="0 0 1200 780" role="img" aria-labelledby="dash-title dash-desc">
+  <title id="dash-title">Mockup: the Composer dashboard</title>
+  <desc id="dash-desc">A browser window at localhost:4040. The main panel shows an installation graph running from my_app to three cookbooks (composer_jido, composer_ash, composer_phoenix), their recipes and the steps those recipes pull in. Four recipes suggested by the chat are highlighted: cs/intake, cs/metrics, cs/sentiment and lv/dashboard; ash/postgres is included because cs/metrics needs it. A generated command sits at the bottom. A sidebar chat titled "Describe your Jido application" shows the user's request and Composer's reply listing the four recipes.</desc>
+  <defs>
+    <clipPath id="win-clip"><rect x="0" y="0" width="1200" height="780" rx="14"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#win-clip)">
+  <!-- window -->
+  <rect x="0" y="0" width="1200" height="780" class="f-win"/>
+
+  <!-- browser chrome -->
+  <rect x="0" y="0" width="1200" height="40" class="f-chrome"/>
+  <circle cx="22" cy="20" r="6" fill="#ff5f57"/>
+  <circle cx="42" cy="20" r="6" fill="#febc2e"/>
+  <circle cx="62" cy="20" r="6" fill="#28c840"/>
+  <rect x="360" y="9" width="480" height="22" rx="11" class="f-win s-line"/>
+  <path d="M378 17.5 v-2 a3 3 0 0 1 6 0 v2 M376.5 17.5 h9 v6.5 h-9 z" class="s-edge" fill="none" stroke-width="1.3"/>
+  <text x="600" y="24.5" text-anchor="middle" class="tm" font-size="12">localhost:4040/composer</text>
+
+  <!-- app header -->
+  <rect x="0" y="40" width="1200" height="52" class="f-win"/>
+  <line x1="0" y1="92" x2="1200" y2="92" class="s-line"/>
+  <path d="M30 56 L40 66 L30 76 L20 66 Z" class="f-accent"/>
+  <path d="M30 61 L35 66 L30 71 L25 66 Z" class="f-on"/>
+  <text x="50" y="71" class="t" font-size="16" font-weight="700">composer</text>
+  <rect x="138" y="54" width="78" height="24" rx="12" class="f-surface2"/>
+  <text x="177" y="70.5" text-anchor="middle" class="mono tm" font-size="11.5">my_app</text>
+
+  <text x="258" y="71" class="ta" font-size="13.5" font-weight="600">Graph</text>
+  <rect x="252" y="89" width="52" height="3" rx="1.5" class="f-accent"/>
+  <text x="330" y="71" class="tm" font-size="13.5">Recipes</text>
+  <text x="408" y="71" class="tm" font-size="13.5">Steps</text>
+  <text x="472" y="71" class="tm" font-size="13.5">Diff</text>
+
+  <circle cx="896" cy="66" r="4" class="f-good"/>
+  <text x="1180" y="70.5" text-anchor="end" class="tm" font-size="12">mix composer.dashboard · 3 cookbooks loaded</text>
+
+  <!-- ================= MAIN PANEL ================= -->
+  <rect x="0" y="93" width="800" height="687" class="f-panel"/>
+
+  <text x="20" y="124" class="t" font-size="15.5" font-weight="700">Installation graph</text>
+  <text x="168" y="124" class="tf" font-size="12">41 recipes available · 4 suggested</text>
+
+  <!-- legend -->
+  <rect x="512" y="114" width="12" height="12" rx="3" class="f-accent"/>
+  <text x="530" y="124" class="tm" font-size="11.5">Suggested</text>
+  <rect x="604" y="114" width="12" height="12" rx="3" class="f-soft s-accent" stroke-dasharray="3 2"/>
+  <text x="622" y="124" class="tm" font-size="11.5">Included</text>
+  <rect x="690" y="114" width="12" height="12" rx="3" class="f-node s-edge"/>
+  <text x="708" y="124" class="tm" font-size="11.5">Available</text>
+
+  <text x="20" y="152" class="cap tf">APP</text>
+  <text x="172" y="152" class="cap tf">COOKBOOKS</text>
+  <text x="360" y="152" class="cap tf">RECIPES</text>
+  <text x="600" y="152" class="cap tf">STEPS</text>
+
+  <!-- edges: muted (available) -->
+  <g fill="none" class="s-edge" stroke-width="1.25" stroke-dasharray="3 3">
+    <path d="M320 306 C340 306 340 234 360 234"/>
+    <path d="M320 306 C340 306 340 378 360 378"/>
+    <path d="M320 306 C340 306 340 426 360 426"/>
+    <path d="M320 512 C340 512 340 536 360 536"/>
+    <path d="M320 622 C340 622 340 646 360 646"/>
+  </g>
+  <!-- edges: suggested / included -->
+  <g fill="none" class="s-accent" stroke-width="1.75">
+    <path d="M132 450 C152 450 152 306 172 306"/>
+    <path d="M132 450 C152 450 152 512 172 512"/>
+    <path d="M132 450 C152 450 152 622 172 622"/>
+    <path d="M320 306 C340 306 340 186 360 186"/>
+    <path d="M320 306 C340 306 340 282 360 282"/>
+    <path d="M320 306 C340 306 340 330 360 330"/>
+    <path d="M320 622 C340 622 340 598 360 598"/>
+    <path d="M550 186 C575 186 575 175 600 175"/>
+    <path d="M550 186 C575 186 575 215 600 215"/>
+    <path d="M550 186 C575 186 575 255 600 255"/>
+    <path d="M550 282 C575 282 575 175 600 175"/>
+    <path d="M550 282 C575 282 575 295 600 295"/>
+    <path d="M550 330 C575 330 575 335 600 335"/>
+    <path d="M550 330 C575 330 575 375 600 375"/>
+    <path d="M550 598 C575 598 575 591 600 591"/>
+    <path d="M550 598 C575 598 575 631 600 631"/>
+  </g>
+  <path d="M550 488 C575 488 575 485 600 485" fill="none" class="s-accent" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <!-- cs/metrics uses ash/postgres -->
+  <path d="M360 290 C318 300 318 470 360 482" fill="none" class="s-accent" stroke-width="1.25" stroke-dasharray="2 3" opacity=".7"/>
+
+  <!-- root node -->
+  <rect x="20" y="414" width="112" height="72" rx="10" class="f-accent"/>
+  <text x="76" y="441" text-anchor="middle" class="mono f-on" font-size="14" font-weight="700">my_app</text>
+  <text x="76" y="459" text-anchor="middle" class="mono f-on" font-size="10" opacity=".85">mix igniter.new</text>
+  <text x="76" y="474" text-anchor="middle" class="f-on" font-size="10" opacity=".7">Phoenix · Ash · Jido</text>
+
+  <!-- cookbook nodes -->
+  <g>
+    <rect x="172" y="278" width="148" height="56" rx="10" class="f-node s-accent" stroke-width="1.5"/>
+    <rect x="172" y="278" width="5" height="56" rx="2.5" class="f-accent"/>
+    <text x="188" y="302" class="mono t" font-size="12.5" font-weight="700">composer_jido</text>
+    <text x="188" y="320" class="tm" font-size="11">18 recipes · 3 suggested</text>
+
+    <rect x="172" y="484" width="148" height="56" rx="10" class="f-node s-accent" stroke-width="1.5"/>
+    <rect x="172" y="484" width="5" height="56" rx="2.5" class="f-accent"/>
+    <text x="188" y="508" class="mono t" font-size="12.5" font-weight="700">composer_ash</text>
+    <text x="188" y="526" class="tm" font-size="11">9 recipes · 1 included</text>
+
+    <rect x="172" y="594" width="148" height="56" rx="10" class="f-node s-accent" stroke-width="1.5"/>
+    <rect x="172" y="594" width="5" height="56" rx="2.5" class="f-accent"/>
+    <text x="188" y="618" class="mono t" font-size="12.5" font-weight="700">composer_phoenix</text>
+    <text x="188" y="636" class="tm" font-size="11">14 recipes · 1 suggested</text>
+  </g>
+
+  <!-- recipe nodes: suggested -->
+  <g>
+    <rect x="360" y="168" width="190" height="36" rx="8" class="f-soft s-accent" stroke-width="1.5"/>
+    <circle cx="377" cy="186" r="8" class="f-accent"/>
+    <text x="377" y="190" text-anchor="middle" class="f-on" font-size="10" font-weight="700">1</text>
+    <text x="392" y="190" class="mono tas" font-size="11.5" font-weight="600">cs/intake</text>
+    <rect x="527" y="179" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M530.5 186 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="360" y="264" width="190" height="36" rx="8" class="f-soft s-accent" stroke-width="1.5"/>
+    <circle cx="377" cy="282" r="8" class="f-accent"/>
+    <text x="377" y="286" text-anchor="middle" class="f-on" font-size="10" font-weight="700">2</text>
+    <text x="392" y="286" class="mono tas" font-size="11.5" font-weight="600">cs/metrics</text>
+    <rect x="527" y="275" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M530.5 282 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="360" y="312" width="190" height="36" rx="8" class="f-soft s-accent" stroke-width="1.5"/>
+    <circle cx="377" cy="330" r="8" class="f-accent"/>
+    <text x="377" y="334" text-anchor="middle" class="f-on" font-size="10" font-weight="700">3</text>
+    <text x="392" y="334" class="mono tas" font-size="11.5" font-weight="600">cs/sentiment</text>
+    <rect x="527" y="323" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M530.5 330 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="360" y="580" width="190" height="36" rx="8" class="f-soft s-accent" stroke-width="1.5"/>
+    <circle cx="377" cy="598" r="8" class="f-accent"/>
+    <text x="377" y="602" text-anchor="middle" class="f-on" font-size="10" font-weight="700">4</text>
+    <text x="392" y="602" class="mono tas" font-size="11.5" font-weight="600">lv/dashboard</text>
+    <rect x="527" y="591" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M530.5 598 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- recipe node: included -->
+  <g>
+    <rect x="360" y="470" width="190" height="36" rx="8" class="f-soft s-accent" stroke-width="1.25" stroke-dasharray="4 3"/>
+    <circle cx="377" cy="488" r="3.5" class="f-accent"/>
+    <text x="392" y="485" class="mono tas" font-size="11.5" font-weight="600">ash/postgres</text>
+    <text x="392" y="499" class="ta" font-size="9.5">via cs/metrics</text>
+    <rect x="527" y="481" width="14" height="14" rx="3.5" class="f-node s-accent"/>
+    <path d="M530.5 488 l2.5 2.5 l4.5 -5" class="s-accent" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- recipe nodes: available -->
+  <g>
+    <rect x="360" y="216" width="190" height="36" rx="8" class="f-node s-edge"/>
+    <circle cx="377" cy="234" r="3" class="f-surface2 s-edge"/>
+    <text x="392" y="238" class="mono tm" font-size="11.5">cs/routing</text>
+    <rect x="527" y="227" width="14" height="14" rx="3.5" class="f-node s-edge"/>
+
+    <rect x="360" y="360" width="190" height="36" rx="8" class="f-node s-edge"/>
+    <circle cx="377" cy="378" r="3" class="f-surface2 s-edge"/>
+    <text x="392" y="382" class="mono tm" font-size="11.5">ai/task_execution</text>
+    <rect x="527" y="371" width="14" height="14" rx="3.5" class="f-node s-edge"/>
+
+    <rect x="360" y="408" width="190" height="36" rx="8" class="f-node s-edge"/>
+    <circle cx="377" cy="426" r="3" class="f-surface2 s-edge"/>
+    <text x="392" y="430" class="mono tm" font-size="11.5">fraud/watchers</text>
+    <rect x="527" y="419" width="14" height="14" rx="3.5" class="f-node s-edge"/>
+
+    <rect x="360" y="518" width="190" height="36" rx="8" class="f-node s-edge"/>
+    <circle cx="377" cy="536" r="3" class="f-surface2 s-edge"/>
+    <text x="392" y="540" class="mono tm" font-size="11.5">ash/authentication</text>
+    <rect x="527" y="529" width="14" height="14" rx="3.5" class="f-node s-edge"/>
+
+    <rect x="360" y="628" width="190" height="36" rx="8" class="f-node s-edge"/>
+    <circle cx="377" cy="646" r="3" class="f-surface2 s-edge"/>
+    <text x="392" y="650" class="mono tm" font-size="11.5">lv/agent_console</text>
+    <rect x="527" y="639" width="14" height="14" rx="3.5" class="f-node s-edge"/>
+  </g>
+
+  <!-- step nodes -->
+  <g>
+    <rect x="600" y="160" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="175" r="3" class="f-accent"/>
+    <text x="624" y="179" class="mono t" font-size="11.5">hex:jido</text>
+    <text x="766" y="179" text-anchor="end" class="tf" font-size="10">shared</text>
+
+    <rect x="600" y="200" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="215" r="3" class="f-accent"/>
+    <text x="624" y="219" class="mono t" font-size="11.5">email_intake_agent</text>
+
+    <rect x="600" y="240" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="255" r="3" class="f-accent"/>
+    <text x="624" y="259" class="mono t" font-size="11.5">web_intake_agent</text>
+
+    <rect x="600" y="280" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="295" r="3" class="f-accent"/>
+    <text x="624" y="299" class="mono t" font-size="11.5">metrics_store</text>
+
+    <rect x="600" y="320" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="335" r="3" class="f-accent"/>
+    <text x="624" y="339" class="mono t" font-size="11.5">hex:jido_ai</text>
+
+    <rect x="600" y="360" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="375" r="3" class="f-accent"/>
+    <text x="624" y="379" class="mono t" font-size="11.5">sentiment_action</text>
+
+    <rect x="600" y="470" width="176" height="30" rx="7" class="f-node s-line" stroke-dasharray="4 3"/>
+    <circle cx="613" cy="485" r="3" class="f-accent"/>
+    <text x="624" y="489" class="mono t" font-size="11.5">hex:ash_postgres</text>
+
+    <rect x="600" y="576" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="591" r="3" class="f-accent"/>
+    <text x="624" y="595" class="mono t" font-size="11.5">dashboard_live</text>
+
+    <rect x="600" y="616" width="176" height="30" rx="7" class="f-node s-line"/>
+    <circle cx="613" cy="631" r="3" class="f-accent"/>
+    <text x="624" y="635" class="mono t" font-size="11.5">volume_chart</text>
+  </g>
+
+  <!-- generated command bar -->
+  <rect x="20" y="688" width="756" height="72" rx="10" class="f-term"/>
+  <text x="38" y="708" class="cap ttm">GENERATED COMMAND</text>
+  <text x="196" y="708" class="ttm" font-size="10.5">4 recipes · 1 included · 9 steps</text>
+  <text x="38" y="729" class="mono tt" font-size="11"><tspan class="ttm">$</tspan> mix composer.recipe.run <tspan class="tp">composer_jido:cs/intake</tspan> <tspan class="tp">composer_jido:cs/metrics</tspan> \</text>
+  <text x="64" y="747" class="mono tt" font-size="11"><tspan class="tp">composer_jido:cs/sentiment</tspan> <tspan class="tp">composer_phoenix:lv/dashboard</tspan></text>
+  <rect x="596" y="710" width="88" height="28" rx="7" fill="none" stroke="#4a4660"/>
+  <text x="640" y="728" text-anchor="middle" class="tt" font-size="12">Preview diff</text>
+  <rect x="692" y="710" width="70" height="28" rx="7" fill="#a796ff"/>
+  <text x="727" y="728" text-anchor="middle" fill="#16131f" font-size="12" font-weight="700">Apply</text>
+
+  <!-- ================= SIDEBAR ================= -->
+  <rect x="800" y="93" width="400" height="687" class="f-side"/>
+  <line x1="800" y1="92" x2="800" y2="780" class="s-line"/>
+
+  <path d="M828 105 C829.5 112 831 113.5 838 115 C831 116.5 829.5 118 828 125 C826.5 118 825 116.5 818 115 C825 113.5 826.5 112 828 105 Z" class="f-accent"/>
+  <text x="846" y="120" class="t" font-size="15.5" font-weight="700">Describe your Jido application</text>
+  <text x="846" y="138" class="tf" font-size="11.5">Composer assistant · uses your installed cookbooks</text>
+  <line x1="816" y1="152" x2="1184" y2="152" class="s-line"/>
+
+  <!-- user message -->
+  <text x="1180" y="176" text-anchor="end" class="tf" font-size="11">You</text>
+  <rect x="876" y="184" width="304" height="98" rx="14" class="f-accent"/>
+  <g class="f-on" font-size="13">
+    <text x="892" y="208">I need to monitor customer service</text>
+    <text x="892" y="227">issues that come via email and web, to</text>
+    <text x="892" y="246">gauge volume and closure rates and to</text>
+    <text x="892" y="265">track customer sentiment over time.</text>
+  </g>
+
+  <!-- assistant message -->
+  <circle cx="830" cy="318" r="13" class="f-soft s-accent"/>
+  <path d="M830 311 L837 318 L830 325 L823 318 Z" class="f-accent"/>
+  <text x="852" y="306" class="tf" font-size="11">Composer</text>
+  <rect x="852" y="314" width="328" height="270" rx="14" class="f-node s-line"/>
+  <g class="t" font-size="13">
+    <text x="868" y="338">This is a good fit for Jido. Here are</text>
+    <text x="868" y="357">some recipes that fit your application</text>
+    <text x="868" y="376">profile.</text>
+  </g>
+
+  <g>
+    <rect x="864" y="392" width="304" height="40" rx="8" class="f-soft"/>
+    <circle cx="881" cy="412" r="8" class="f-accent"/>
+    <text x="881" y="416" text-anchor="middle" class="f-on" font-size="10" font-weight="700">1</text>
+    <text x="898" y="408" class="mono tas" font-size="11.5" font-weight="600">composer_jido:cs/intake</text>
+    <text x="898" y="424" class="tm" font-size="11">Email and web intake agents</text>
+    <rect x="1144" y="405" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M1147.5 412 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="864" y="438" width="304" height="40" rx="8" class="f-soft"/>
+    <circle cx="881" cy="458" r="8" class="f-accent"/>
+    <text x="881" y="462" text-anchor="middle" class="f-on" font-size="10" font-weight="700">2</text>
+    <text x="898" y="454" class="mono tas" font-size="11.5" font-weight="600">composer_jido:cs/metrics</text>
+    <text x="898" y="470" class="tm" font-size="11">Volume and closure-rate tracking</text>
+    <rect x="1144" y="451" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M1147.5 458 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="864" y="484" width="304" height="40" rx="8" class="f-soft"/>
+    <circle cx="881" cy="504" r="8" class="f-accent"/>
+    <text x="881" y="508" text-anchor="middle" class="f-on" font-size="10" font-weight="700">3</text>
+    <text x="898" y="500" class="mono tas" font-size="11.5" font-weight="600">composer_jido:cs/sentiment</text>
+    <text x="898" y="516" class="tm" font-size="11">Customer sentiment over time</text>
+    <rect x="1144" y="497" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M1147.5 504 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <rect x="864" y="530" width="304" height="40" rx="8" class="f-soft"/>
+    <circle cx="881" cy="550" r="8" class="f-accent"/>
+    <text x="881" y="554" text-anchor="middle" class="f-on" font-size="10" font-weight="700">4</text>
+    <text x="898" y="546" class="mono tas" font-size="11.5" font-weight="600">composer_phoenix:lv/dashboard</text>
+    <text x="898" y="562" class="tm" font-size="11">A LiveView dashboard</text>
+    <rect x="1144" y="543" width="14" height="14" rx="3.5" class="f-accent"/>
+    <path d="M1147.5 550 l2.5 2.5 l4.5 -5" class="s-on" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- assistant actions -->
+  <rect x="852" y="596" width="118" height="30" rx="8" class="f-node s-line"/>
+  <text x="911" y="615" text-anchor="middle" class="t" font-size="12">Show in graph</text>
+  <rect x="978" y="596" width="112" height="30" rx="8" class="f-accent"/>
+  <text x="1034" y="615" text-anchor="middle" class="f-on" font-size="12" font-weight="600">Add all 4</text>
+
+  <!-- explanatory note -->
+  <rect x="852" y="640" width="328" height="52" rx="10" class="f-surface2"/>
+  <circle cx="872" cy="666" r="8" fill="none" class="s-accent" stroke-width="1.3"/>
+  <text x="872" y="670" text-anchor="middle" class="ta" font-size="10.5" font-weight="700">i</text>
+  <text x="890" y="662" class="tm" font-size="11.5"><tspan class="mono">ash/postgres</tspan> is included because</text>
+  <text x="890" y="679" class="tm" font-size="11.5"><tspan class="mono">cs/metrics</tspan> keeps history for trends.</text>
+
+  <!-- input -->
+  <rect x="816" y="712" width="368" height="48" rx="12" class="f-node s-line"/>
+  <text x="834" y="741" class="tf" font-size="13">Refine: add fraud alerts, Slack intake…</text>
+  <circle cx="1160" cy="736" r="15" class="f-accent"/>
+  <path d="M1160 743 v-13 M1154.5 735.5 l5.5 -5.5 l5.5 5.5" class="s-on" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <rect x="0.5" y="0.5" width="1199" height="779" rx="14" fill="none" class="s-line"/>
+</svg>
+<figcaption>Mockup of <code>mix composer.dashboard</code>. The chat suggests four recipes (numbered); the graph highlights them, pulls in <code>ash/postgres</code> as a dependency, and builds the command.</figcaption>
+</figure>
+</div>
+
+<div class="page" style="padding-top:8px;padding-bottom:0">
+
+<div class="hyp">
+  <span class="label">Hypothesis 3</span>
+  <p>Setup friction is a real barrier to Jido adoption, and a guided "describe your app, get a running skeleton" flow would lower it.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="num">4</span>A possible JidoComposer implementation plan</h2>
+
+<h3>Cookbook contents (first cut)</h3>
+
+<p><strong>Recipes from the Jido examples</strong> (<a href="https://jido.run/examples">jido.run/examples</a>):</p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Group</th><th>Recipes (one per example)</th></tr></thead>
+  <tbody>
+    <tr><td><code>core/</code></td><td class="recipes">counter, demand_tracker, address_normalization, signal_routing, emit_directive, schedule_directive, state_ops, plugin_basics, persistence_storage</td></tr>
+    <tr><td><code>ai/</code></td><td class="recipes">actions_runtime, browser_workflow, operational_agents, skills_orchestration, skills_foundations, task_execution, weather_context, weather_reasoning</td></tr>
+    <tr><td><code>runic/</code></td><td class="recipes">adaptive_researcher, research_studio, research_studio_step_mode, delegating_orchestrator, structured_llm_branching</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><strong>Recipes from the use cases in section 2:</strong></p>
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Group</th><th>Example recipes</th></tr></thead>
+  <tbody>
+    <tr><td><code>cs/</code></td><td>intake, routing, metrics, sentiment</td></tr>
+    <tr><td><code>fraud/</code></td><td>watchers, scoring, escalation</td></tr>
+    <tr><td><code>correspondence/</code></td><td>drafting, follow_up, reminders</td></tr>
+    <tr><td><code>ops/</code></td><td>scheduled_reports, audits, monitoring</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p><strong>Shared steps:</strong> add Jido, configure an AI provider, add persistence, add a LiveView agent console, and add test scaffolding for agents.</p>
+
+<h3>Phases</h3>
+<ol class="phases">
+  <li><strong>Conversation (today):</strong> test the hypotheses.</li>
+  <li><strong>Prototype:</strong> a <code>composer_jido</code> cookbook with a few <code>core/</code> recipes, to prove that the examples can be generated, not just copied.</li>
+  <li><strong>Use cases:</strong> one complete use-case recipe (customer service), end to end.</li>
+  <li><strong>Dashboard:</strong> <code>mix composer.dashboard</code> with the graph and chat.</li>
+  <li><strong>Ownership:</strong> decide whether the cookbook stays in the Composer project, moves to the Jido project, or is shared.</li>
+</ol>
+
+<div class="hyp">
+  <span class="label">Hypothesis 4</span>
+  <p>The Jido examples can be turned into recipes with modest effort, and doing so would help keep the examples and the framework in step.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="num">5</span>Discussion: feedback and direction</h2>
+
+<div class="discuss">
+  <section>
+    <h3>Understanding</h3>
+    <ul>
+      <li>Does the Composer concept make sense? What was unclear?</li>
+      <li>Is "cookbook / recipe / step" the right vocabulary?</li>
+    </ul>
+  </section>
+  <section>
+    <h3>Problem</h3>
+    <ul>
+      <li>What are Jido's core challenges right now: developer adoption, end-user adoption, revenue, visibility?</li>
+      <li>Where do new Jido developers get stuck first?</li>
+      <li>What Jido problems might a Jido cookbook solve?</li>
+    </ul>
+  </section>
+  <section>
+    <h3>Fit and overlap</h3>
+    <ul>
+      <li>Does Composer duplicate functionality you plan to bundle into Jido (for example, Jido's own Igniter installers or generators)?</li>
+      <li>How close is our read of "Why Jido" and of Jido's sweet spot? Which use cases would you add or drop?</li>
+    </ul>
+  </section>
+  <section>
+    <h3>Risks</h3>
+    <ul>
+      <li>What problems do you see with the Composer concept?</li>
+      <li>Would generated Jido code go stale as Jido evolves? Who keeps it current?</li>
+    </ul>
+  </section>
+  <section class="full">
+    <h3>Ownership and direction</h3>
+    <ul>
+      <li>Would you, in concept, support a <code>composer_jido</code> cookbook authored and maintained by the Composer project?</li>
+      <li>Would you, in concept, support a Jido cookbook authored and maintained by the Jido project?</li>
+      <li>Who else should we talk to?</li>
+    </ul>
+  </section>
+</div>
+
+<!-- ============================================================ -->
+<h2>Sources</h2>
+<ul class="sources">
+  <li>Composer: <a href="https://github.com/elixir-composer/composer">github.com/elixir-composer/composer</a></li>
+  <li>Igniter: <a href="https://github.com/ash-project/igniter">github.com/ash-project/igniter</a></li>
+  <li>Ash HQ installer: <a href="https://ash-hq.org/installer/">ash-hq.org/installer</a></li>
+  <li>Jido: <a href="https://jido.run">jido.run</a> and <a href="https://jido.run/examples">jido.run/examples</a></li>
+  <li>Frameworks: <a href="https://github.com/elixir-volt/astral">Astral</a>, <a href="https://francis.build">Francis</a>, <a href="https://www.phoenixframework.org">Phoenix</a>, <a href="https://ash-hq.org">Ash</a>, <a href="https://mobframework.com">Mob</a></li>
+  <li>Market validation: <a href="https://www.productplan.com/glossary/market-validation">productplan.com/glossary/market-validation</a></li>
+  <li>Carl Hewitt, <em>Open Systems: the Challenge for Intelligent Systems</em> (1984)</li>
+  <li>Carl Hewitt, Code Mesh LDN 2018: <a href="https://www.codesync.global/speaker/carl-hewitt">codesync.global/speaker/carl-hewitt</a></li>
+  <li>Hermes Agent and OpenClaw comparison: <a href="https://docs.openclaw.ai/start/why-openclaw/openclaw-and-hermes-agent">docs.openclaw.ai</a></li>
+</ul>
+
+<footer>Copyright © 2026 by Andy Leak - All Rights Reserved</footer>
+
+</div>
+</body>
+</html>
