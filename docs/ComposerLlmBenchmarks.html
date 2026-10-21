@@ -1,0 +1,485 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Composer LLM Benchmarks</title>
+<meta name="description" content="Concept note: in the age of LLMs, is Composer helpful or a dead end? Pros and cons, a conclusion, and a benchmark design to test it.">
+<meta name="author" content="Andy Leak">
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --surface: #ffffff;
+    --surface-2: #f3f1ec;
+    --text: #1d1b22;
+    --muted: #5d5a66;
+    --faint: #8f8b98;
+    --border: #e2dfd8;
+    --accent: #5b3fd1;
+    --accent-strong: #3f2a9e;
+    --accent-soft: #eeeafe;
+    --on-accent: #ffffff;
+    --good: #1f8a5b;
+    --code-bg: #f3f1ec;
+    --term-bg: #17151f;
+    --term-text: #ebe9f3;
+    --term-muted: #8f8aa3;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121117;
+      --surface: #1a1921;
+      --surface-2: #22202b;
+      --text: #ecebf2;
+      --muted: #aaa6b7;
+      --faint: #7a768d;
+      --border: #302e3b;
+      --accent: #a796ff;
+      --accent-strong: #cbc1ff;
+      --accent-soft: #2a2448;
+      --on-accent: #16131f;
+      --good: #4cc38a;
+      --code-bg: #1e1c26;
+      --term-bg: #0d0c12;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121117;
+    --surface: #1a1921;
+    --surface-2: #22202b;
+    --text: #ecebf2;
+    --muted: #aaa6b7;
+    --faint: #7a768d;
+    --border: #302e3b;
+    --accent: #a796ff;
+    --accent-strong: #cbc1ff;
+    --accent-soft: #2a2448;
+    --on-accent: #16131f;
+    --good: #4cc38a;
+    --code-bg: #1e1c26;
+    --term-bg: #0d0c12;
+    color-scheme: dark;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  .page { max-width: 820px; margin: 0 auto; padding: 56px 16px 80px; }
+
+  header.doc { border-bottom: 1px solid var(--border); padding-bottom: 28px; margin-bottom: 8px; }
+  .eyebrow { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin: 0 0 10px; }
+  h1 { font-size: clamp(34px, 6vw, 48px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -.02em; }
+  .subtitle { font-size: 20px; color: var(--muted); margin: 0 0 18px; }
+  .meta { font-size: 14px; color: var(--faint); margin: 0; }
+
+  .part { margin: 88px 0 8px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .part + h2 { margin-top: 0; }
+
+  h2 { font-size: 28px; line-height: 1.2; margin: 64px 0 16px; letter-spacing: -.01em; }
+  h2 .num { color: var(--accent); margin-right: 10px; font-variant-numeric: tabular-nums; }
+  h3 { font-size: 19px; margin: 36px 0 10px; }
+  p, ul, ol { margin: 0 0 16px; }
+  ul, ol { padding-left: 24px; }
+  li { margin: 4px 0; }
+  ol > li { margin: 8px 0; }
+  li > ul { margin: 4px 0 0; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:hover { color: var(--accent-strong); }
+  em.note { color: var(--muted); }
+
+  code {
+    font: 0.86em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 5px;
+    overflow-wrap: anywhere;
+  }
+  pre {
+    background: var(--term-bg);
+    color: var(--term-text);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin: 0 0 18px;
+  }
+  pre code { background: none; border: 0; padding: 0; font: inherit; color: inherit; }
+  pre .c { color: var(--term-muted); }
+  pre .p { color: #b3a6ff; }
+  pre .s { color: #9fd8b4; }
+  pre .k { color: #f0b37e; }
+
+  .lede { font-size: 20px; line-height: 1.5; border-left: 3px solid var(--accent); padding: 2px 0 2px 18px; margin: 0 0 24px; }
+
+  .questions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 18px 0 20px; }
+  .questions div { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .questions b { display: block; font-size: 17px; margin-bottom: 4px; }
+  .questions span { font-size: 15px; color: var(--muted); line-height: 1.45; display: block; }
+  @media (max-width: 640px) { .questions { grid-template-columns: 1fr; } }
+
+  .table-wrap { overflow-x: auto; margin: 0 0 20px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--faint); font-weight: 600; background: var(--surface-2); }
+  tr:last-child td { border-bottom: 0; }
+  tr.hl td { background: var(--accent-soft); }
+  td code { white-space: nowrap; }
+
+  .hyp {
+    background: var(--accent-soft);
+    border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 28px 0 0;
+  }
+  .hyp .label { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 700; color: var(--accent); display: block; margin-bottom: 4px; }
+  .hyp p { margin: 0; }
+  .hyp p + p { margin-top: 10px; }
+
+  .phases { list-style: none; padding: 0; counter-reset: ph; margin: 12px 0 0; }
+  .phases li { counter-increment: ph; position: relative; padding: 0 0 18px 48px; margin: 0; }
+  .phases li::before {
+    content: counter(ph);
+    position: absolute; left: 0; top: 0;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--surface); border: 1.5px solid var(--accent); color: var(--accent);
+    font-weight: 700; font-size: 14px; display: grid; place-items: center;
+  }
+  .phases li::after { content: ""; position: absolute; left: 15px; top: 32px; bottom: 2px; width: 1.5px; background: var(--border); }
+  .phases li:last-child::after { display: none; }
+  .phases li:first-child::before { background: var(--accent); color: var(--on-accent); }
+
+  .discuss { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin: 0 0 20px; }
+  .discuss section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px 6px; }
+  .discuss h3 { margin: 0 0 8px; font-size: 16px; color: var(--accent); }
+  .discuss ul { font-size: 15.5px; padding-left: 20px; }
+  .discuss p { font-size: 15.5px; }
+  .discuss .full { grid-column: 1 / -1; }
+  @media (max-width: 640px) { .discuss { grid-template-columns: 1fr; } }
+
+  .sources { font-size: 15px; color: var(--muted); }
+  footer { border-top: 1px solid var(--border); margin-top: 64px; padding-top: 20px; font-size: 14px; color: var(--faint); }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<header class="doc">
+  <p class="eyebrow">Concept note · 2026-10-21</p>
+  <h1>Composer LLM Benchmarks</h1>
+  <p class="subtitle">In the age of LLM supremacy, is Composer helpful, or a misguided dead end?</p>
+  <p class="meta">October 2026 · Andy Leak · Copyright © 2026 by Andy Leak - All Rights Reserved</p>
+</header>
+
+<!-- ============================================================ -->
+<h2>The question</h2>
+
+<p class="lede">Is Composer even helpful now that we live in a world where LLMs are ascendant?</p>
+
+<ul>
+  <li>You read about people who have their coding agent compile direct to assembler. You read that coding languages and frameworks just get in the way.</li>
+  <li>Composer introduces another layer of code, another artifact to maintain. In the age of LLM supremacy, is Composer a misguided dead end?</li>
+</ul>
+
+<h3>Hypothesis</h3>
+<p>Composer is a framework for assembling applications. Frameworks will still be useful in the age of LLMs, because:</p>
+<ul>
+  <li>frameworks give constraints and affordances that are useful to LLMs</li>
+  <li>frameworks give a standard vocabulary for humans to tell LLMs what they want</li>
+</ul>
+
+<div class="hyp">
+  <span class="label">Hypothesis</span>
+  <p>LLMs are more useful when they are given direction. Tools like <code>AGENTS.md</code>, <code>usage_rules</code> and skills have proven to be effective. Composer is another way to give direction to an LLM, and it will prove useful in the age of LLMs.</p>
+</div>
+
+<h3>Three types of user</h3>
+<p>Over time, we want to test this theory with benchmarks from the perspective of three types of user:</p>
+<div class="questions">
+  <div><b>The AiChat End User</b><span>Probably non-technical. Someone who just wants to assemble an application with the aid of an LLM.</span></div>
+  <div><b>The Casual Developer</b><span>An experienced coder who can read Elixir. Builds app skeletons, then finds errors and goes into the skeleton to fix them.</span></div>
+  <div><b>The Cookbook Power Developer</b><span>An obsessive Composer developer, who drinks the Composer kool-aid and architects cookbooks.</span></div>
+</div>
+
+<!-- ============================================================ -->
+<p class="eyebrow part">Part 1 · Existential assessment</p>
+<h2><span class="num">1</span>First, fix the framing</h2>
+
+<p><em class="note">Assessment dated 2026-10-21. Related: <code>261021_EaseOfUse.md</code> (the agent-task harness proposed there is the harness this document needs), <code>261020_StepWiseCommits.md</code>, <code>261012_Menus.md</code> (<code>--json</code> output for agents), <code>261001_Overview.md</code>.</em></p>
+
+<p>"LLM vs. LLM-plus-Composer" is the wrong comparison, and it flatters Composer. Nobody serious uses a <em>bare</em> LLM to set up a Phoenix app in 2026. The real competitor is:</p>
+
+<p class="lede"><strong>LLM + <code>phx.new</code> + <code>mix igniter.install</code> + <code>usage_rules</code> + a few skills</strong></p>
+
+<p>That baseline already has frameworks, generators, AST-aware installers and written-down know-how. Composer has to beat <em>that</em>, and the thing it most directly competes with is the <strong>skill</strong>: a markdown file that says "to add Oban, do these five things." A skill is a recipe written in English. It costs almost nothing to write, needs no framework, no Igniter knowledge and no CI, and an LLM adapts it on the fly when the target app looks a bit different.</p>
+
+<div class="hyp">
+  <span class="label">The real question</span>
+  <p>Is a recipe better than a skill?</p>
+</div>
+
+<p style="margin-top:24px">The "compile straight to assembler" crowd is a distraction. Frameworks are not going away: LLMs are trained on framework code, and both LLMs and humans review and extend abstractions far better than raw output. The hypothesis holds for Phoenix and Ash. But "frameworks survive" does not imply that a <em>meta-layer above</em> frameworks survives. Composer needs its own argument.</p>
+
+<!-- ============================================================ -->
+<h2><span class="num">2</span>The case against Composer</h2>
+
+<p><em class="note">Steelmanned, without holding back.</em></p>
+
+<ol>
+  <li><strong>It optimizes the cheapest hour of an app's life.</strong> Setup happens once. An app lives for years, and LLMs help across all of them. Composer helps with the first hour, which is also the most well-trodden, best-documented, most-represented-in-training-data part of building an app. That's where LLMs are already strongest.</li>
+  <li><strong>Recipes fail hard; LLMs fail soft.</strong> When upstream changes (Phoenix 1.8 scopes, Tailwind 4, daisyUI 5), a recipe breaks and stays broken until a maintainer fixes it. An LLM reads the error, reads the new docs, and adapts. A stale recipe can be <em>worse</em> than no recipe, because it confidently produces a broken app. <code>261021_EaseOfUse.md</code> already flags cookbook maintenance as the red flag; in the LLM comparison it's the central weakness.</li>
+  <li><strong>Real apps leave the recipe within an hour.</strong> Recipes cover the common path. The long tail (this auth provider, that odd deploy target) is where the work is, and the LLM handles it either way. If Composer covers 80% of setup and setup is 2% of the work, the ceiling on its value is low.</li>
+  <li><strong>Skills capture the same knowledge at a fraction of the cost.</strong> Writing a step needs Igniter, which is the steep part of the SuperDev curve. Writing a skill needs English. If an LLM following a skill reaches the same result at similar cost, Composer is a more expensive way to store the same knowledge.</li>
+  <li><strong>The Neophyte is not going to choose Elixir.</strong> A non-technical user who wants an app goes to a hosted AI app builder and gets a running URL. They don't care what language it's in. The Neophyte story only works if someone else (a CasualDev, an agency, composable.tech) has already chosen Elixir for them.</li>
+  <li><strong>It depends on network effects in a small ecosystem.</strong> A cookbook ecosystem needs many authors. Elixir is a small community, and authors now have a cheaper option (skills) for sharing the same know-how.</li>
+  <li><strong>Another artifact for the LLM to learn.</strong> Composer's DSL is not in any model's training data. Every agent session pays tokens to learn it from <code>usage_rules</code> before it pays off.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2><span class="num">3</span>The case for Composer</h2>
+
+<ol>
+  <li><strong>Determinism.</strong> Same recipe, same flags, same result, every time. An LLM run varies from run to run and from model version to model version. For a team ("all our services start the same way"), for audit, for support ("which version of the auth setup do you have?"), that's worth a lot, and no skill provides it.</li>
+  <li><strong>Cost and speed.</strong> A recipe runs in seconds for zero tokens. An agent setting up auth + Oban + Tailwind + daisyUI + a dashboard takes dozens of turns, minutes, real money, and sometimes a human rescue. At one app, who cares. At a thousand apps (a marketplace, an agency, CI), it matters.</li>
+  <li><strong>Selection is easier than generation.</strong> With Composer as a tool, the agent's job shrinks from "write and edit 3,000 lines" to "pick six steps and set two flags." Choosing from a catalog with <code>requires</code>/<code>conflicts</code> checks is a far easier task for an LLM than open-ended generation, and its mistakes are caught <em>before</em> anything runs (<code>composer.menu.check</code>).</li>
+  <li><strong>Smaller review surface.</strong> A human reviews an eight-line recipe, not a 3,000-line diff. With step-wise commits, each change is attributed to a named, tested step. This is the strongest argument for the CasualDev: <em>you can trust what you didn't read</em>, because someone tested it.</li>
+  <li><strong>Tested knowledge, not remembered knowledge.</strong> LLMs write Elixir well at the language level; where they slip is current library versions and the integration seams between packages (config keys that moved, installer flags that changed, CSS that clashes). Those are exactly what a recipe pins down and a golden-app test verifies. A skill is <em>advice</em>; a green recipe is <em>proof</em>.</li>
+  <li><strong>Igniter edits are structural and idempotent.</strong> AST-aware, composable edits are more reliable than an LLM's text edits on a config file it is seeing for the first time.</li>
+</ol>
+
+<!-- ============================================================ -->
+<h2><span class="num">4</span>Where the two sides meet</h2>
+
+<p>Read the lists side by side and one pattern stands out:</p>
+
+<div class="discuss">
+  <section>
+    <h3>Every "against" point</h3>
+    <p>is about Composer as a <strong>human-facing tool that competes with the LLM</strong>.</p>
+  </section>
+  <section>
+    <h3>Every "for" point</h3>
+    <p>is about Composer as a <strong>deterministic, tested execution layer that the LLM calls</strong>.</p>
+  </section>
+</div>
+
+<p>That suggests the role Composer should aim for:</p>
+
+<p class="lede"><strong>The LLM decides. Composer executes. Tests verify.</strong></p>
+
+<p>In that picture:</p>
+<ul>
+  <li><strong>A recipe is a cached, verified LLM plan.</strong> The first time, an LLM works out how to add Oban properly. Composer turns that into a step that is tested, versioned and reusable, and nobody (human or agent) pays to work it out again.</li>
+  <li><strong>LLMs write the steps.</strong> The Igniter barrier for SuperDevs mostly goes away if an agent writes the step and <code>composer.try</code> (from EaseOfUse) proves it. The SuperDev reviews.</li>
+  <li><strong>LLMs repair the steps.</strong> Point 2 against ("recipes fail hard") is answered if nightly golden-app tests catch drift and an agent opens the fix. Then recipes fail hard <em>in CI</em>, not in the user's hands.</li>
+  <li><strong>Composer's primary user is an agent.</strong> The human-facing parts (TUI, menus, web UI) still matter, but the <code>--json</code> interfaces, the step metadata (summary, facets, <code>requires</code>) and an MCP server are the main interface. Search and discovery "by humans and agents" (README) should read "by agents, and humans".</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2><span class="num">5</span>Conclusion</h2>
+
+<div class="hyp">
+  <span class="label">Verdict</span>
+  <p><strong>Composer is not a dead end, but it is a dead end in the shape of "a better generator for humans."</strong> The pure human-tool version loses to LLM + skills within a couple of years: the LLM gets better every quarter, and the cookbooks rot unless someone pays to maintain them.</p>
+  <p><strong>It is worth pursuing as the execution layer for agents</strong>, where determinism, cost, verified integration knowledge and small review surfaces are real advantages that LLMs don't remove and skills don't provide.</p>
+</div>
+
+<p style="margin-top:24px">The hypothesis is right, with one adjustment: Composer is not mainly a way to <em>give direction</em> to an LLM (that's what skills and <code>usage_rules</code> do, more cheaply). It is a way to give an LLM <strong>reliable, tested actions</strong> to take.</p>
+
+<h3>Two claims to test early</h3>
+<p>Confidence is moderate, and it rests on two claims:</p>
+<ol class="phases">
+  <li><strong>On covered tasks, LLM + Composer beats LLM + skills</strong> on success rate <em>and</em> on cost/variance by a clear margin, not a few percent.</li>
+  <li><strong>A tested recipe stays correct longer, or is cheaper to repair, than a skill</strong> when upstream versions move.</li>
+</ol>
+
+<ul>
+  <li>If (1) fails, Composer's value shrinks to determinism alone, which helps teams and marketplaces but isn't enough to carry a cookbook ecosystem.</li>
+  <li>If (2) fails, the maintenance burden makes the whole thing a losing trade.</li>
+  <li>Either result would be a reason to stop or pivot (for example: ship the cookbook knowledge as skills + Igniter installers, and drop the recipe layer). Both are cheap to test, so test them before building more surface area.</li>
+</ul>
+
+<!-- ============================================================ -->
+<p class="eyebrow part">Part 2 · Benchmark approach</p>
+<h2><span class="num">6</span>The experimental design</h2>
+
+<p>For each type of user: would an LLM plus Composer be more helpful than an LLM alone? The design below is shared by all three users.</p>
+
+<h3>Arms</h3>
+<p>Every task runs under at least three conditions. <strong>Arm B is the one that matters</strong>; without it the benchmark only proves that context helps an LLM, which nobody doubts.</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Arm</th><th>Condition</th><th>What the agent has</th></tr></thead>
+  <tbody>
+    <tr><td><strong>A</strong></td><td>Bare LLM</td><td><code>mix</code>, <code>phx.new</code>, web docs</td></tr>
+    <tr class="hl"><td><strong>B</strong></td><td><strong>LLM + skills</strong> (the real competitor)</td><td>A + <code>igniter.install</code>, <code>usage_rules</code>, and a skill per feature with the same know-how as the recipes</td></tr>
+    <tr><td><strong>C</strong></td><td>LLM + Composer</td><td>A + Composer as a tool (<code>--json</code> / MCP), its <code>usage_rules</code>, the cookbooks</td></tr>
+    <tr><td><strong>D</strong></td><td>Composer alone (CasualDev only)</td><td>No LLM: a human runs the recipe</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>To keep B fair, write the skills from the same source as the steps: same packages, same versions, same config. Ideally, have an agent turn each step into a skill, then have a human check it.</p>
+
+<h3>Task tiers</h3>
+<p>Composer should win on covered tasks. The real question is whether it hurts on everything else.</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Tier</th><th>Example</th><th>Why it's there</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Covered</strong></td><td>"Phoenix app with auth, Oban, daisyUI, admin dashboard"</td><td>Composer's home ground</td></tr>
+    <tr><td><strong>Partial</strong></td><td>Covered task + "add Stripe webhooks"</td><td>Does the recipe help or get in the way after it?</td></tr>
+    <tr><td><strong>Uncovered</strong></td><td>Something no recipe touches</td><td>Does Composer's presence cost tokens or confuse?</td></tr>
+    <tr><td><strong>Follow-on</strong></td><td>Day 2: "add a feature" to the app built in an earlier tier</td><td>Are Composer-built apps easier to extend?</td></tr>
+    <tr><td><strong>Drift</strong></td><td>A covered task, pinned to upstream versions newer than the model's cutoff</td><td>Tested recipe vs. the LLM's memory vs. a skill</td></tr>
+  </tbody>
+</table>
+</div>
+
+<ul>
+  <li>The <strong>drift</strong> tier is where Composer's "tested knowledge" claim either holds or doesn't.</li>
+  <li>The <strong>follow-on</strong> tier answers the "cheapest hour" objection: if Composer only helps in the first hour, it shows up here as no difference.</li>
+</ul>
+
+<h3>Scoring</h3>
+<p>Automated, from the golden-app checks in EaseOfUse:</p>
+<ul>
+  <li><strong>Success:</strong> <code>compile --warnings-as-errors</code>, generated tests pass, app boots, plus hidden <strong>acceptance probes</strong> per task (a scripted HTTP check or a Wallaby script: can I register, log in, enqueue a job, see the dashboard?). The agent never sees the probes.</li>
+  <li><strong>Cost:</strong> tokens, dollars, turns, wall-clock time.</li>
+  <li><strong>Variance:</strong> run each task/arm <strong>N ≥ 5</strong> times. Report success rate and the spread of the result (diff size, files touched). Determinism is one of Composer's claims, so measure it.</li>
+  <li><strong>Quality:</strong> <code>credo</code>, <code>sobelow</code>, <code>mix format --check-formatted</code>, diff size.</li>
+  <li><strong>Human interventions:</strong> count of times a human had to step in (for the human-in-the-loop personas).</li>
+</ul>
+
+<h3>Hygiene</h3>
+<ul>
+  <li>Pin the model and the harness version. Re-baseline every arm when either changes, or the graph measures the model instead of Composer.</li>
+  <li>Run at least two model families, since Composer's value should not depend on one vendor's quirks.</li>
+  <li>Freeze the task list; add new tasks as a new suite version, never by editing old ones.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2><span class="num">7</span>The AiChat End User</h2>
+
+<h3>Would LLM + Composer help?</h3>
+<p>Probably yes on covered tasks: higher success rate, much lower cost, much lower variance. The user can't read code, so a broken app is a dead end for them, and <em>reliability is the whole product</em>. Composer's selection-over-generation shape is a good fit: the agent maps "I want people to log in and pay me" onto menu picks, which <code>composer.menu.check</code> validates before anything runs.</p>
+<p>But be honest about the ceiling: this user doesn't care that the app is Elixir, and they need hosting, not a repo. This persona matters only through a front end (composer_web, composable.tech) that someone else builds.</p>
+
+<h3>Benchmarks</h3>
+<ul>
+  <li><strong>Automated (now):</strong> an agent plays the user. It gets a plain-language brief ("a booking site for my yoga studio, members log in, I can see who booked") and may not read or edit code. Arms A/B/C. Score on the hidden acceptance probes.</li>
+  <li><strong>Simulated user (now):</strong> a second LLM plays a non-technical user with a hidden spec, and answers the building agent's questions vaguely, the way a real user would. Measures how well each arm turns fuzzy requirements into a working app, and how many clarifying turns it needs.</li>
+  <li><strong>Human trial (later, once a front end exists):</strong> 5 to 8 non-technical participants, each given a brief, using a chat UI wired to arm B or C (between-subjects; they can't do both without learning the task). Record completion, time, number of "it's broken" moments, and a short SUS questionnaire. Until there's a front end, a Wizard-of-Oz version works: a facilitator relays the chat.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2><span class="num">8</span>The Casual Developer</h2>
+
+<h3>Would LLM + Composer help?</h3>
+<p>This is Composer's strongest persona, and the one to benchmark first. The CasualDev can read code but doesn't want to. The benefits that matter to him:</p>
+<ul>
+  <li><strong>Trust without reading:</strong> a recipe of named, tested steps, each in its own commit, versus a large LLM diff he has to review line by line.</li>
+  <li><strong>Fewer fix-up loops:</strong> fewer "it compiles but the CSS is broken" moments.</li>
+  <li><strong>Knowing what he has:</strong> he can say "this app is <code>core:saas/default</code> plus two steps" and look each one up.</li>
+</ul>
+<p>The risk is the partial tier: if the recipe gets him 80% of the way and then the LLM struggles with Composer-shaped code, he's no better off.</p>
+
+<h3>Benchmarks</h3>
+<ul>
+  <li><strong>Automated:</strong> the same agent harness, but the agent may read and edit the generated code (that's the CasualDev's workflow). All tiers. The partial and follow-on tiers matter most here.</li>
+  <li><strong>Human trial, crossover design:</strong> 5 to 8 Elixir developers, two comparable task lists (say, SaaS starter and internal admin tool). Each developer does one list with arm B and one with arm C, with order and pairing counterbalanced. Measure time to a green app (acceptance probes), interventions, and defects found by the probes afterwards.</li>
+  <li><strong>Comprehension check:</strong> after each task, five questions about the app they just built ("where is the Oban config?", "what does the auth flow do on a failed login?"). If Composer users can't answer them, "trust without reading" has turned into "doesn't know his own app", which is a real cost.</li>
+  <li><strong>Review cost:</strong> give a second developer the result of each arm and time how long a confident review takes. This is the cleanest test of the "smaller review surface" claim.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2><span class="num">9</span>The Cookbook Power Developer</h2>
+
+<h3>Would LLM + Composer help?</h3>
+<p>It's a different question for this persona. He isn't building apps; he's packaging know-how. The comparison is:</p>
+
+<p class="lede"><strong>Know-how as a step</strong> (Igniter code + tests) vs. <strong>know-how as a skill</strong> (markdown)</p>
+
+<p>A step costs more to write. The bet is that it pays back through <strong>reuse</strong> (cheaper and more reliable for every app built after) and <strong>durability</strong> (easier to keep correct). With an LLM writing the step and <code>composer.try</code> checking it, the authoring cost gap may be small.</p>
+
+<h3>Benchmarks</h3>
+<ul>
+  <li><strong>Authoring:</strong> tasks like "package this blog post as a step" and "package it as a skill." An agent does both, with a human reviewing; record time, tokens and review time to a result that passes golden-app tests (step) or passes the same acceptance probes when an agent follows it (skill).</li>
+  <li><strong>Payback:</strong> run each artifact N times through the end-user harness. Plot cumulative cost (authoring + per-use tokens + failures) against number of uses. Where the lines cross is the <strong>break-even point</strong>. If a step only pays off after 500 uses, most steps never will, and the cookbook model is in trouble.</li>
+  <li><strong>Durability</strong> (the most important long-run benchmark): keep a fixed set of steps and their twin skills. Every month, or on every upstream release, run both against the latest versions. Record which stays green, and the cost (human minutes + agent tokens) to bring each back to green. This answers claim (2) from the conclusion, and it needs months of data, so <strong>start it first</strong>.</li>
+  <li><strong>Repair by agent:</strong> break a recipe on purpose by bumping an upstream version, then time an agent fixing it with <code>composer.try</code> as its loop. If agents can do this unattended, the maintenance concern mostly goes away.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2><span class="num">10</span>What to do first</h2>
+
+<p>A small first experiment, roughly a week of work, that tests both claims:</p>
+<ol class="phases">
+  <li>Pick <strong>three covered tasks</strong> from <code>composer_lab</code> recipes that already work.</li>
+  <li>Write the <strong>twin skills</strong> for them.</li>
+  <li>Build the minimal harness: scratch app, agent run, acceptance probes, one JSON line per run (as in EaseOfUse).</li>
+  <li>Run arms A, B and C, <strong>five runs each</strong>, one pinned model.</li>
+  <li>Start the monthly <strong>durability</strong> job on those three steps and skills.</li>
+</ol>
+
+<div class="hyp">
+  <span class="label">Decision rule</span>
+  <p>Agreed before looking at the results: if arm C doesn't beat arm B by a clear margin on success rate <em>or</em> cost on covered tasks (say, +20 points of success, or half the cost at equal success), stop and rethink the recipe layer before building more of it.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2><span class="num">11</span>Open questions</h2>
+
+<div class="discuss">
+  <section>
+    <h3>Harness location</h3>
+    <ul>
+      <li>Where does the harness live? Same question as EaseOfUse; it should be one harness for both documents.</li>
+    </ul>
+  </section>
+  <section>
+    <h3>Budget</h3>
+    <ul>
+      <li>3 tasks × 3 arms × 5 runs × 2 models is 90 agent runs. Fine for the first experiment; the full tier matrix needs a run budget.</li>
+    </ul>
+  </section>
+  <section>
+    <h3>Twin skills</h3>
+    <ul>
+      <li>Who writes them? If a Composer enthusiast writes them, arm B is at risk of being a weak strawman. An outsider, or an agent with a fixed prompt, keeps it honest.</li>
+    </ul>
+  </section>
+  <section>
+    <h3>Publishing</h3>
+    <ul>
+      <li>Should we publish the results? A public benchmark (on elixir-composer.dev), including the cases where Composer loses, is good marketing and keeps the project honest.</li>
+    </ul>
+  </section>
+</div>
+
+<!-- ============================================================ -->
+<h2>Related notes</h2>
+<ul class="sources">
+  <li><code>261001_Overview.md</code>: Composer overview</li>
+  <li><code>261012_Menus.md</code>: menus and <code>--json</code> output for agents</li>
+  <li><code>261020_StepWiseCommits.md</code>: one commit per step</li>
+  <li><code>261021_EaseOfUse.md</code>: <code>composer.try</code>, golden-app tests, and the shared agent-task harness</li>
+  <li>Composer: <a href="https://github.com/elixir-composer/composer">github.com/elixir-composer/composer</a></li>
+</ul>
+
+<footer>Copyright © 2026 by Andy Leak - All Rights Reserved</footer>
+
+</div>
+</body>
+</html>
